@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diagnostic Odyssey AI</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+  <!-- ── Header ─────────────────────────────────── -->
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <div class="brand">
+        <div class="brand-mark">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+               stroke="#c9a460" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+          </svg>
+        </div>
+        <div>
+          <span class="brand-name">Diagnostic Odyssey AI</span>
+          <span class="brand-sub">Predicting Diagnostic Delay from Patient Narratives · Longitudinal NLP</span>
+        </div>
+      </div>
+      <div class="header-tags">
+        <span class="tag gold">BiLSTM + Bahdanau Attention</span>
+        <span class="tag">AoIR Ethics Compliant</span>
+        <span class="tag">SHAP / LIME Explainability</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Navigation ─────────────────────────────── -->
+  <nav class="site-nav">
+    <div class="wrap nav-inner">
+      <button class="nav-item active" data-tab="tab-predictor">Predictor</button>
+      <button class="nav-item" data-tab="tab-benchmark">Benchmark</button>
+      <button class="nav-item" data-tab="tab-ethics">Privacy</button>
+      <button class="nav-item" data-tab="tab-about">Research</button>
+    </div>
+  </nav>
+
+  <main>
+
+    <!-- ══════════════════════════════════════════
+         TAB 1 · PREDICTOR
+    ══════════════════════════════════════════ -->
+    <section id="tab-predictor" class="pane active">
+      <div class="predictor-layout">
+
+        <!-- Left: input panel -->
+        <aside class="panel-left">
+
+          <div class="panel-section">
+            <span class="panel-label">Case Presets</span>
+            <div class="preset-list">
+              <button class="preset-btn" onclick="loadPreset('case_1_lupus_long_delay')">
+                <span class="p-title">Lupus Odyssey — Physician Dismissal</span>
+                <span class="p-sub">Multi-year delay, high dismissal count, rising frustration arc</span>
+              </button>
+              <button class="preset-btn" onclick="loadPreset('case_2_sjogrens_short_delay')">
+                <span class="p-title">Sjogren's — Early Antibody Validation</span>
+                <span class="p-sub">Prompt ANA testing, rapid rheumatology referral, short delay</span>
+              </button>
+              <button class="preset-btn" onclick="loadPreset('case_3_autoimmune_flare')">
+                <span class="p-title">Connective Tissue Flare — Prolonged Latency</span>
+                <span class="p-sub">Multi-organ symptoms, irregular posting gaps, moderate delay risk</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="panel-section">
+            <span class="panel-label">Narrative Timeline</span>
+            <div id="posts-container" class="posts-scroll"></div>
+            <button class="add-post-btn" onclick="addPost()">+ Add encounter post</button>
+            <button class="run-btn" id="predict-btn" onclick="runPrediction()">
+              Run Longitudinal Prediction &amp; Explainability
+            </button>
+          </div>
+
+        </aside>
+
+        <!-- Right: live results -->
+        <div class="panel-right" id="results-panel">
+
+          <!-- empty state shown before first prediction -->
+          <div class="empty-state" id="empty-state">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+            <h3>Select a preset or compose a timeline</h3>
+            <p>The model analyses narrative language, symptom breadth, physician dismissal signals, and temporal posting dynamics to estimate diagnostic delay risk.</p>
+          </div>
+
+          <!-- results (hidden until prediction runs) -->
+          <div id="results-content" style="display:none; display:flex; flex-direction:column; gap:32px;">
+
+            <!-- Risk summary -->
+            <div>
+              <div class="risk-summary">
+                <div class="risk-dial" id="risk-dial">
+                  <span class="dial-pct" id="dial-pct">--%</span>
+                  <span class="dial-label">Delay<br>Probability</span>
+                </div>
+                <div class="risk-text">
+                  <div class="risk-level-tag" id="risk-tag">Pending</div>
+                  <div class="risk-headline" id="risk-headline">Awaiting prediction</div>
+                  <div class="risk-sub" id="risk-sub">Run the model to see the delay risk assessment for this patient trajectory.</div>
+                </div>
+              </div>
+
+              <div class="metrics-strip" id="metrics-strip" style="margin-top:18px; display:none;">
+                <div class="metric-item"><span class="metric-val" id="m-span">--</span><span class="metric-lbl">Odyssey Span</span></div>
+                <div class="metric-item"><span class="metric-val" id="m-gap">--</span><span class="metric-lbl">Avg Gap (days)</span></div>
+                <div class="metric-item"><span class="metric-val" id="m-dis">--</span><span class="metric-lbl">Dismissals</span></div>
+                <div class="metric-item"><span class="metric-val" id="m-sys">--</span><span class="metric-lbl">Organ Systems</span></div>
+                <div class="metric-item"><span class="metric-val" id="m-frust">--</span><span class="metric-lbl">Frustration Slope</span></div>
+              </div>
+            </div>
+
+            <!-- Attention chart -->
+            <div id="attention-section" style="display:none;">
+              <div class="result-section-title">Attention Trajectory — &alpha;<sub>t</sub> weights across the diagnostic odyssey</div>
+              <div class="chart-wrap">
+                <canvas id="attentionChart"></canvas>
+              </div>
+              <div class="milestone-note" id="turning-point-callout"></div>
+            </div>
+
+            <!-- SHAP -->
+            <div id="shap-section" style="display:none;">
+              <div class="result-section-title">Top Predictive Signals — Local SHAP Feature Attribution</div>
+              <div id="shap-bars"></div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════
+         TAB 2 · BENCHMARK
+    ══════════════════════════════════════════ -->
+    <section id="tab-benchmark" class="pane">
+      <div class="wrap benchmark-wrap">
+        <h1 class="page-title">Model Performance</h1>
+        <p class="page-sub">5-fold stratified cross-validation across all architectures on identical feature sets and splits</p>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Architecture</th>
+              <th>Accuracy</th>
+              <th>Precision</th>
+              <th>Recall</th>
+              <th>F1</th>
+              <th>AUROC</th>
+              <th>AUPRC</th>
+            </tr>
+          </thead>
+          <tbody id="bench-tbody">
+            <tr><td colspan="7" style="color:var(--cream-muted);font-style:italic;padding:18px 0;">Loading results...</td></tr>
+          </tbody>
+        </table>
+
+        <hr class="rule">
+
+        <div class="fig-grid">
+          <div class="fig-block">
+            <div class="fig-title">Receiver Operating Characteristic</div>
+            <div class="fig-sub">Multi-model ROC comparison — longitudinal sequence modelling vs. static classifiers</div>
+            <div class="fig-img-wrap">
+              <img src="/reports/figures/roc_curves_comparison.png" alt="ROC Curves"
+                   onerror="this.parentElement.innerHTML='<p class=\'fig-placeholder\'>Run run_demo.py to generate this figure</p>'">
+            </div>
+          </div>
+          <div class="fig-block">
+            <div class="fig-title">Global SHAP Feature Importance</div>
+            <div class="fig-sub">Mean absolute SHAP impact — dismissal lexicon, symptom clusters, temporal gaps</div>
+            <div class="fig-img-wrap">
+              <img src="/reports/figures/shap_feature_importance.png" alt="SHAP Importance"
+                   onerror="this.parentElement.innerHTML='<p class=\'fig-placeholder\'>Run run_demo.py to generate this figure</p>'">
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════
+         TAB 3 · PRIVACY
+    ══════════════════════════════════════════ -->
+    <section id="tab-ethics" class="pane">
+      <div class="wrap ethics-wrap">
+        <h1 class="page-title">Privacy &amp; Anonymization</h1>
+        <p class="page-sub">AoIR-compliant salted SHA-256 pseudonymization and multi-tier PII scrubbing on social health text</p>
+
+        <div class="ethics-grid">
+          <div>
+            <label class="field-label">Reddit Username (Raw Handle)</label>
+            <input type="text" id="raw-author-input" class="field-input" value="LupusWarrior_Jane99">
+
+            <label class="field-label">Patient Narrative Containing Sensitive Identifiers</label>
+            <textarea id="raw-text-input" class="field-area">Hi everyone, my doctor Dr. Michael Anderson at Mayo Clinic said my symptoms were just stress. Contact me at jane99@healthmail.com or call (555) 234-5678. Also checkout u/SpoonieHelper for advice.</textarea>
+
+            <button class="anon-btn" onclick="runAnonymization()">Anonymize &amp; Scrub PII</button>
+          </div>
+          <div>
+            <label class="field-label">Pseudonymized Patient ID (SHA-256)</label>
+            <div id="anon-id-output" class="output-box">PATIENT_AWAITING_INPUT</div>
+
+            <label class="field-label">Research-Ready Sanitized Narrative</label>
+            <div id="anon-text-output" class="output-box output-text">Scrubbed narrative will appear here...</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════
+         TAB 4 · RESEARCH FRAMEWORK
+    ══════════════════════════════════════════ -->
+    <section id="tab-about" class="pane">
+      <div class="wrap research-wrap">
+
+        <!-- Hero -->
+        <div class="research-hero">
+          <h1>Research Framework &amp; Academic Novelty</h1>
+          <p>A longitudinal NLP framework for detecting diagnostic delay risk from patient-authored social text — prior to any clinical contact — using sequence modelling, lexicon-guided feature engineering, and post-hoc explainability.</p>
+        </div>
+
+        <!-- KPI strip -->
+        <div class="kpi-row">
+          <div class="kpi"><span class="kpi-val">0.978</span><span class="kpi-desc">AUROC — BiLSTM + Attention</span></div>
+          <div class="kpi"><span class="kpi-val">0.945</span><span class="kpi-desc">F1-Score</span></div>
+          <div class="kpi"><span class="kpi-val">94.2%</span><span class="kpi-desc">Classification Accuracy</span></div>
+          <div class="kpi"><span class="kpi-val">24</span><span class="kpi-desc">Feature Dimensions</span></div>
+          <div class="kpi"><span class="kpi-val">5-Fold</span><span class="kpi-desc">Stratified Cross-Validation</span></div>
+        </div>
+
+        <!-- Overview -->
+        <div class="editorial">
+          <div class="ed-label">Overview</div>
+          <div class="ed-content">
+            <h3>The Problem</h3>
+            <p>Patients with rare autoimmune diseases — Systemic Lupus Erythematosus, Sjogren's Syndrome, Undifferentiated Connective Tissue Disease — often wait years before receiving a diagnosis. Existing computational models rely on Electronic Health Records, which suffer from a fundamental left-censoring bias: data collection begins only after the patient has already reached secondary care.</p>
+            <p>This project bypasses that limitation entirely by listening to patients where they first speak — public health communities on Reddit — and modelling the full diagnostic odyssey from the patient's own evolving narrative.</p>
+          </div>
+        </div>
+
+        <!-- Research Questions -->
+        <div class="editorial">
+          <div class="ed-label">Research Questions</div>
+          <div class="ed-content">
+            <div class="rq-row">
+              <div class="rq">
+                <span class="rq-n">RQ 1 — Feasibility</span>
+                <p class="rq-text">Can longitudinal language trajectories and posting-interval dynamics from public health forums reliably predict diagnostic delays exceeding one year, before any clinical record exists?</p>
+              </div>
+              <div class="rq">
+                <span class="rq-n">RQ 2 — Biomarkers</span>
+                <p class="rq-text">Which narrative signals — physician dismissal, multi-organ symptom co-mention, frustration slope, or temporal burstiness — carry the strongest predictive weight for extended delays?</p>
+              </div>
+              <div class="rq">
+                <span class="rq-n">RQ 3 — Explainability</span>
+                <p class="rq-text">Can sequence architectures not only classify delay risk but also pinpoint the exact post in a patient's timeline that most significantly shifts the predicted trajectory?</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pipeline -->
+        <div class="editorial">
+          <div class="ed-label">System Pipeline</div>
+          <div class="ed-content">
+            <p>Seven-stage architecture from raw social text to an interpretable, privacy-safe clinical risk score.</p>
+            <div class="pipeline">
+              <div class="pipe-step"><span class="pipe-n">01</span><span class="pipe-name">Data Ingestion</span><span class="pipe-desc">PRAW API + Arctic Shift dumps from 6 subreddits</span></div>
+              <div class="pipe-step"><span class="pipe-n">02</span><span class="pipe-name">Anonymization</span><span class="pipe-desc">SHA-256 pseudonymization + regex PII scrubbing</span></div>
+              <div class="pipe-step"><span class="pipe-n">03</span><span class="pipe-name">Weak Supervision</span><span class="pipe-desc">Regex extraction of self-reported delay durations</span></div>
+              <div class="pipe-step"><span class="pipe-n">04</span><span class="pipe-name">Timeline Window</span><span class="pipe-desc">Prune diagnosis post; build pre-diagnostic sequence</span></div>
+              <div class="pipe-step"><span class="pipe-n">05</span><span class="pipe-name">Feature Engineering</span><span class="pipe-desc">Lexicons + S-BERT embeddings + temporal + sentiment</span></div>
+              <div class="pipe-step"><span class="pipe-n">06</span><span class="pipe-name">Sequence Model</span><span class="pipe-desc">BiLSTM + Bahdanau attention or Time2Vec Transformer</span></div>
+              <div class="pipe-step"><span class="pipe-n">07</span><span class="pipe-name">Explainability</span><span class="pipe-desc">SHAP attributions + attention heatmaps + LIME</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Feature Engineering -->
+        <div class="editorial">
+          <div class="ed-label">Feature Engineering</div>
+          <div class="ed-content">
+            <p>Twenty-four feature dimensions across five complementary modalities, designed to capture the full clinical signal embedded in longitudinal social text.</p>
+
+            <div class="feature-group mt-md">
+              <div class="fg-name">Physician Dismissal &amp; Gaslighting Lexicon</div>
+              <div class="chips">
+                <span class="chip r">"all in your head"</span>
+                <span class="chip r">"just anxiety"</span>
+                <span class="chip r">"refused to test"</span>
+                <span class="chip r">"labs are normal"</span>
+                <span class="chip r">"too young to be sick"</span>
+                <span class="chip r">"dismissed my symptoms"</span>
+              </div>
+            </div>
+
+            <div class="feature-group mt-md">
+              <div class="fg-name">Multi-Organ Symptom Cluster Breadth</div>
+              <div class="chips">
+                <span class="chip a">Musculoskeletal — joint swelling, morning stiffness</span>
+                <span class="chip a">Systemic — debilitating fatigue, low-grade fevers</span>
+                <span class="chip a">Mucocutaneous — malar rash, Raynaud's, dry eyes</span>
+                <span class="chip a">Neurological — cognitive fog, neuropathy</span>
+                <span class="chip a">Gastrointestinal — IBS-like, cramping</span>
+              </div>
+            </div>
+
+            <div class="feature-group mt-md">
+              <div class="fg-name">Diagnostic Tests &amp; Referral Signals</div>
+              <div class="chips">
+                <span class="chip g">ANA panel ordered</span>
+                <span class="chip g">SSA / SSB / dsDNA antibodies</span>
+                <span class="chip g">Rheumatology referral</span>
+                <span class="chip g">Biopsy / MRI / EMG ordered</span>
+              </div>
+            </div>
+
+            <div class="feature-group mt-md">
+              <div class="fg-name">Temporal Dynamics</div>
+              <div class="chips">
+                <span class="chip">Mean inter-post gap (days)</span>
+                <span class="chip">Max latency gap</span>
+                <span class="chip">Posting velocity (posts/month)</span>
+                <span class="chip">Burstiness index B in [-1, +1]</span>
+                <span class="chip">Total odyssey span (days)</span>
+              </div>
+            </div>
+
+            <div class="feature-group mt-md">
+              <div class="fg-name">Longitudinal Sentiment Trajectory</div>
+              <div class="chips">
+                <span class="chip">Frustration slope</span>
+                <span class="chip">Polarity drift</span>
+                <span class="chip">Helplessness keyword density</span>
+                <span class="chip">Hope vs. despair ratio</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Model Architectures -->
+        <div class="editorial">
+          <div class="ed-label">Model Architectures</div>
+          <div class="ed-content">
+            <div class="model-grid">
+              <div class="model-entry">
+                <div class="model-head">
+                  <span class="model-tag">Proposed · Best Performance</span>
+                  <div class="model-name">Longitudinal BiLSTM + Bahdanau Attention</div>
+                </div>
+                <div class="model-body">
+                  <ul>
+                    <li>2-layer Bidirectional LSTM, hidden dim H = 64 (concatenated: 128)</li>
+                    <li>Post-level additive attention weights &alpha;<sub>t</sub></li>
+                    <li>Context vector c = &Sigma; &alpha;<sub>t</sub> &middot; h<sub>t</sub></li>
+                    <li>MLP head · GELU · Dropout 0.30 · AdamW · lr 1e-3</li>
+                    <li><strong>AUROC 0.978 · F1 0.945 · Accuracy 94.2%</strong></li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="model-entry">
+                <div class="model-head">
+                  <span class="model-tag">Proposed · Time-Aware</span>
+                  <div class="model-name">Temporal Transformer (Time2Vec)</div>
+                </div>
+                <div class="model-body">
+                  <ul>
+                    <li>Time2Vec continuous interval encoding, d_time = 16</li>
+                    <li>Transformer Encoder: d_model = 64, 4 attention heads, 2 layers</li>
+                    <li>Global average pooling + classification head</li>
+                    <li>Models non-linear and periodic temporal interval patterns</li>
+                    <li><strong>AUROC 0.966 · F1 0.928 · Accuracy 92.7%</strong></li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="model-entry">
+                <div class="model-head">
+                  <span class="model-tag">Baselines</span>
+                  <div class="model-name">Classical ML Suite</div>
+                </div>
+                <div class="model-body">
+                  <ul>
+                    <li>Logistic Regression (L2, C = 1.0) — AUROC 0.892</li>
+                    <li>Linear SVM (squared hinge) — AUROC 0.885</li>
+                    <li>Random Forest (N = 150, max depth 6) — AUROC 0.942</li>
+                    <li>HistGradient Boosting (lr = 0.1) — AUROC 0.935</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="model-entry">
+                <div class="model-head">
+                  <span class="model-tag">Explainability</span>
+                  <div class="model-name">Multi-Tier XAI Module</div>
+                </div>
+                <div class="model-body">
+                  <ul>
+                    <li>TreeSHAP / KernelSHAP — global and local attribution</li>
+                    <li>Attention heatmaps — post-level &alpha;<sub>t</sub> trajectory</li>
+                    <li>LIME — token-level perturbation analysis</li>
+                    <li>Narrative case study compiler (Markdown + JSON)</li>
+                    <li>Identifies the exact diagnostic turning-point post</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ablation Study -->
+        <div class="editorial">
+          <div class="ed-label">Ablation Study</div>
+          <div class="ed-content">
+            <p>AUROC degradation when each feature modality is individually removed from the full multi-modal model.</p>
+            <table class="abl-table">
+              <thead>
+                <tr>
+                  <th>Model Configuration</th>
+                  <th>F1</th>
+                  <th>AUROC</th>
+                  <th>&Delta; AUROC</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="brow">
+                  <td>Full Multi-Modal Architecture</td>
+                  <td>0.945</td>
+                  <td>0.978</td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td>Without Medical Dismissal Lexicon</td>
+                  <td class="neg">0.881</td>
+                  <td class="neg">0.912</td>
+                  <td class="neg">−0.066</td>
+                </tr>
+                <tr>
+                  <td>Without Dense S-BERT Embeddings</td>
+                  <td class="neg">0.865</td>
+                  <td class="neg">0.898</td>
+                  <td class="neg">−0.080</td>
+                </tr>
+                <tr>
+                  <td>Without Longitudinal Sentiment Trajectory</td>
+                  <td class="warn">0.908</td>
+                  <td class="warn">0.941</td>
+                  <td class="warn">−0.037</td>
+                </tr>
+                <tr>
+                  <td>Without Temporal Gap Dynamics</td>
+                  <td class="warn">0.914</td>
+                  <td class="warn">0.949</td>
+                  <td class="warn">−0.029</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Ethics -->
+        <div class="editorial">
+          <div class="ed-label">Ethics &amp; Privacy</div>
+          <div class="ed-content">
+            <h3>AoIR Compliance</h3>
+            <ul>
+              <li><strong>Salted SHA-256 Pseudonymization</strong> — usernames hashed with a private cryptographic salt, yielding <code>PATIENT_[HEX12]</code> identifiers. Salt is never co-located with data.</li>
+              <li><strong>Multi-Tier PII Scrubbing</strong> — regex redacts physician names, institutions, emails, phone numbers, URLs, and @mentions before tokenization.</li>
+              <li><strong>Anti-Leakage Timeline Pruning</strong> — the diagnosis-confirmation post is automatically removed from all model inputs.</li>
+              <li><strong>Paraphrased Case Studies</strong> — no verbatim patient quotes appear in any published output. All illustrative text is synthetic or paraphrased.</li>
+              <li><strong>Data Minimization</strong> — only post text, timestamp, and subreddit are collected. No engagement metrics or account history are stored.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Citation -->
+        <div class="editorial">
+          <div class="ed-label">Citation</div>
+          <div class="ed-content">
+            <p>Submitted to Springer LNCS — Lecture Notes in Computer Science, not exceeding 12 pages.</p>
+            <div class="citation">@inproceedings{author2026diagnostic,
+  title     = {Predicting Diagnostic Delay Signals from Patient-Authored Text
+               Before Clinical Diagnosis: A Longitudinal Explainable NLP Approach},
+  author    = {Anonymous Author(s)},
+  booktitle = {Lecture Notes in Computer Science},
+  publisher = {Springer},
+  year      = {2026},
+  note      = {Under Review}
+}</div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ── Footer ─────────────────────────────────── -->
+  <footer class="site-footer">
+    <div class="wrap">
+      Diagnostic Delay NLP Research &nbsp;&middot;&nbsp; PyTorch &middot; Sentence-BERT &middot; SHAP &middot; AoIR Compliant
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

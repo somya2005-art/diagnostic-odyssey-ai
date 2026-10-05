@@ -1,0 +1,57 @@
+# Configuration for Diagnostic Delay NLP Framework
+
+project:
+  name: "diagnostic-delay-nlp"
+  seed: 42
+  device: "auto"  # 'cuda', 'cpu', or 'auto'
+
+data:
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  synthetic_dir: "data/synthetic"
+  reports_dir: "reports"
+  figures_dir: "reports/figures"
+  case_studies_dir: "reports/case_studies"
+
+subreddits:
+  - "lupus"
+  - "Sjogrens"
+  - "AutoimmuneDisease"
+  - "DiagnoseMe"
+  - "ChronicIllness"
+  - "spoonies"
+  - "UndiagnosedIllness"
+
+labeling:
+  threshold_years: 1.0  # <= 1.0 year: 0 (short delay), > 1.0 year: 1 (long delay)
+  min_posts_per_user: 2
+  max_posts_per_user: 25
+
+features:
+  use_dense_embeddings: true
+  embedding_model: "sentence-transformers/all-MiniLM-L6-v2"
+  fallback_embedding_dim: 64
+  ngram_range: [1, 2]
+  max_tfidf_features: 500
+
+models:
+  bilstm:
+    hidden_dim: 64
+    num_layers: 2
+    dropout: 0.3
+    learning_rate: 0.001
+    epochs: 15
+    batch_size: 16
+  transformer:
+    d_model: 64
+    nhead: 4
+    num_encoder_layers: 2
+    dim_feedforward: 128
+    dropout: 0.2
+    learning_rate: 0.0005
+    epochs: 15
+    batch_size: 16
+
+explainability:
+  num_background_samples: 50
+  num_case_studies: 3

@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: diagnostic-odyssey-ai
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    plan: free
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: TOKENIZERS_PARALLELISM
+        value: "false"
+    healthCheckPath: /

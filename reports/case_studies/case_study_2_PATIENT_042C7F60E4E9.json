@@ -1,0 +1,79 @@
+{
+  "patient_id": "PATIENT_042C7F60E4E9",
+  "prediction": {
+    "predicted_delay_probability": 0.0001,
+    "predicted_trajectory": "Short Delay (<= 1 Year)",
+    "ground_truth_label": "Short Delay (<= 1 Year)",
+    "is_concordant": true
+  },
+  "timeline_metrics": {
+    "total_pre_diagnosis_posts": 3,
+    "total_observed_span_days": 156.64,
+    "avg_gap_days": 78.32
+  },
+  "chronological_odyssey": [
+    {
+      "post_index": 1,
+      "elapsed_days": 0.0,
+      "interval_from_prev_post_days": 0.0,
+      "attention_weight": 0.3487,
+      "is_peak_attention": false,
+      "anonymized_text": "Sudden onset of butterfly rash on cheeks after sun exposure and feeling like I have the flu for months - what should I ask my doctor? Hi everyone, over the past few weeks I have noticed butterfly rash on cheeks after sun exposure. Also having feeling like I have the flu for months. Could this be lupus or Sjogrens? Here are my symptoms..."
+    },
+    {
+      "post_index": 2,
+      "elapsed_days": 108.88,
+      "interval_from_prev_post_days": 108.88,
+      "attention_weight": 0.402,
+      "is_peak_attention": true,
+      "anonymized_text": "Update: Doctor ordered ANA and rheumatology referral Had my doctor appointment today. PCP listened carefully to my joint swelling and suspected an autoimmune condition. Also noticed some unbearable wrist aching. Hoping for clear results soon."
+    },
+    {
+      "post_index": 3,
+      "elapsed_days": 156.64,
+      "interval_from_prev_post_days": 47.76,
+      "attention_weight": 0.2494,
+      "is_peak_attention": false,
+      "anonymized_text": "Update: Doctor ordered ANA and rheumatology referral Had my doctor appointment today. My doctor immediately ordered an ANA panel and referred me to rheumatology. Also noticed some swollen knuckles. Hoping for clear results soon."
+    }
+  ],
+  "top_predictive_features": [
+    {
+      "feature": "diagnostic_tests_count",
+      "value": 3.0,
+      "shap_impact": 0.0648,
+      "direction": "Increases Delay Risk"
+    },
+    {
+      "feature": "max_frustration",
+      "value": 0.0,
+      "shap_impact": 0.0583,
+      "direction": "Increases Delay Risk"
+    },
+    {
+      "feature": "posts_with_dismissal_ratio",
+      "value": 0.0,
+      "shap_impact": 0.0564,
+      "direction": "Increases Delay Risk"
+    },
+    {
+      "feature": "mean_net_polarity",
+      "value": 0.952,
+      "shap_impact": 0.0515,
+      "direction": "Increases Delay Risk"
+    },
+    {
+      "feature": "dismissal_rate",
+      "value": 0.0,
+      "shap_impact": 0.0476,
+      "direction": "Increases Delay Risk"
+    },
+    {
+      "feature": "mean_frustration",
+      "value": 0.0,
+      "shap_impact": 0.0458,
+      "direction": "Increases Delay Risk"
+    }
+  ],
+  "token_level_highlights": []
+}
