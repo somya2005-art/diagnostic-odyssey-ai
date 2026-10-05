@@ -315,14 +315,51 @@ class DiagnosticRequestHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_response(200)
                 if file_path.endswith(".png"):
                     self.send_header("Content-Type", "image/png")
-                elif file_path.endswith(".json") or file_path.endswith(".md"):
+                else:
                     self.send_header("Content-Type", "text/plain; charset=utf-8")
                 self.end_headers()
                 with open(file_path, "rb") as f:
                     self.wfile.write(f.read())
                 return
+            self._send_404()
+            return
 
-        super().do_GET()
+        else:
+            # Serve static files from web/ directory explicitly
+            # Normalize path: / -> /index.html
+            static_path = path.lstrip("/") or "index.html"
+            file_path = os.path.join(BASE_DIR, "web", static_path)
+
+            if os.path.isfile(file_path):
+                ext = os.path.splitext(file_path)[1].lower()
+                mime = {
+                    ".html": "text/html; charset=utf-8",
+                    ".css":  "text/css; charset=utf-8",
+                    ".js":   "application/javascript; charset=utf-8",
+                    ".png":  "image/png",
+                    ".jpg":  "image/jpeg",
+                    ".svg":  "image/svg+xml",
+                    ".ico":  "image/x-icon",
+                    ".json": "application/json",
+                }.get(ext, "application/octet-stream")
+
+                with open(file_path, "rb") as f:
+                    content = f.read()
+                self.send_response(200)
+                self.send_header("Content-Type", mime)
+                self.send_header("Content-Length", str(len(content)))
+                self.end_headers()
+                self.wfile.write(content)
+            else:
+                self._send_404()
+
+    def _send_404(self):
+        body = b"<h1>404 Not Found</h1>"
+        self.send_response(404)
+        self.send_header("Content-Type", "text/html")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
     def do_POST(self):
         url_parts = urllib.parse.urlparse(self.path)
