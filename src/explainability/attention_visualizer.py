@@ -6,8 +6,6 @@ a patient's sequence of pre-diagnostic posts over elapsed calendar time.
 
 from typing import Dict, List, Optional
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
 
 
 class TimelineAttentionVisualizer:
@@ -23,17 +21,13 @@ class TimelineAttentionVisualizer:
         true_label: Optional[int] = None,
         output_path: Optional[str] = None
     ):
-        """Generates a publication-grade timeline attention plot for an individual patient.
-        
-        Args:
-            patient_id: Anonymized patient identifier.
-            posts_text: List of post strings.
-            cumulative_days: List of days elapsed since first post.
-            attention_weights: Array of attention weights corresponding to valid posts.
-            predicted_prob: Model predicted probability of long delay.
-            true_label: Ground truth label (0 or 1).
-            output_path: Destination path to save the generated figure.
-        """
+        """Generates a publication-grade timeline attention plot for an individual patient."""
+        try:
+            import matplotlib.pyplot as plt
+            import seaborn as sns
+        except ImportError:
+            print("[TimelineAttentionVisualizer] matplotlib/seaborn not installed, skipping plot.")
+            return
         # Trim attention weights to actual sequence length
         n_posts = len(posts_text)
         valid_attn = attention_weights[-n_posts:] if len(attention_weights) >= n_posts else attention_weights

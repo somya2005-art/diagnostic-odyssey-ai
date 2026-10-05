@@ -8,8 +8,6 @@ import os
 from typing import Dict, List, Optional
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
 from sklearn.metrics import roc_curve, precision_recall_curve, auc
 from sklearn.calibration import calibration_curve
 
@@ -20,7 +18,11 @@ class PublicationPlotter:
     def __init__(self, output_dir: str = "reports/figures"):
         self.output_dir = output_dir
         os.makedirs(output_dir, exist_ok=True)
-        sns.set_theme(style="whitegrid", font_scale=1.05)
+        try:
+            import seaborn as sns
+            sns.set_theme(style="whitegrid", font_scale=1.05)
+        except ImportError:
+            pass
 
     def plot_roc_curves(
         self,

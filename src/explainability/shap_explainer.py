@@ -7,8 +7,6 @@ over clinical lexicons, medical dismissal signals, sentiment slopes, and tempora
 from typing import Dict, List, Optional, Tuple, Any
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
 
 
 class DiagnosticDelaySHAPExplainer:
@@ -92,6 +90,13 @@ class DiagnosticDelaySHAPExplainer:
         max_display: int = 10
     ):
         """Plots publication-ready feature importance summary."""
+        try:
+            import matplotlib.pyplot as plt
+            import seaborn as sns
+        except ImportError:
+            print("[SHAPExplainer] matplotlib/seaborn not installed, skipping plot_summary.")
+            return
+
         if self.shap_values is None:
             self.explain(X)
 
