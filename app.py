@@ -13,6 +13,10 @@ from typing import Dict, List, Any
 import numpy as np
 import torch
 
+# Limit CPU threads to prevent memory explosion on 512MB RAM containers
+torch.set_num_threads(1)
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
 # Ensure repository root is on sys.path
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, BASE_DIR)
@@ -100,9 +104,12 @@ class FastDiagnosticInferenceEngine:
 
         ds = PatientTimelineDataset(seq_tensors, y_list, seq_masks)
         loader = torch.utils.data.DataLoader(ds, batch_size=8, shuffle=True)
-        for _ in range(8):
+        for _ in range(3):
             self.bilstm_trainer.train_epoch(loader)
-        print("[InferenceEngine] Online calibration complete!")
+        self.bilstm_trainer.model.eval()
+        import gc
+        gc.collect()
+        print("[InferenceEngine] Online calibration complete! Low-memory inference ready.")
 
     def predict_timeline(self, posts: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Predicts delay risk, attention weights, and SHAP features for a given timeline."""
