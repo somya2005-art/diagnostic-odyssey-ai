@@ -104,15 +104,59 @@ async function runPrediction() {
       body:    JSON.stringify({ posts: currentPosts })
     });
     const data = await res.json();
+
+    if (data.warming_up) {
+      // Model still loading in background — show message and auto-retry
+      btn.textContent = 'Model is warming up — retrying in 6 seconds...';
+      showWarmingBanner();
+      setTimeout(() => {
+        btn.textContent = 'Run Longitudinal Prediction & Explainability';
+        btn.disabled = false;
+        runPrediction();
+      }, 6000);
+      return;
+    }
+
+    hideWarmingBanner();
     displayResults(data);
   } catch (e) {
     console.error(e);
     btn.textContent = 'Connection error — is the server running?';
   } finally {
-    btn.textContent = 'Run Longitudinal Prediction & Explainability';
-    btn.disabled = false;
+    if (!btn.disabled || btn.textContent === 'Connection error — is the server running?') {
+      btn.textContent = 'Run Longitudinal Prediction & Explainability';
+      btn.disabled = false;
+    }
   }
 }
+
+function showWarmingBanner() {
+  let b = document.getElementById('warming-banner');
+  if (!b) {
+    b = document.createElement('div');
+    b.id = 'warming-banner';
+    b.style.cssText = `
+      background: rgba(201,164,96,0.08);
+      border: 1px solid rgba(201,164,96,0.25);
+      border-left: 3px solid #c9a460;
+      color: #b8ad97;
+      font-size: 0.8rem;
+      padding: 10px 14px;
+      border-radius: 0 5px 5px 0;
+      margin-bottom: 12px;
+      line-height: 1.5;
+    `;
+    b.textContent = 'The AI model is loading in the background (first visit after deployment takes ~25 seconds). The page is fully usable — predictions will run automatically once ready.';
+    const panel = document.querySelector('.panel-section:last-child');
+    if (panel) panel.insertBefore(b, panel.firstChild);
+  }
+}
+
+function hideWarmingBanner() {
+  const b = document.getElementById('warming-banner');
+  if (b) b.remove();
+}
+
 
 /* ── Display Results ────────────────────────────── */
 function displayResults(data) {

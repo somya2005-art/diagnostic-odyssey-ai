@@ -315,6 +315,15 @@ class DiagnosticRequestHandler(http.server.SimpleHTTPRequestHandler):
             }).encode("utf-8"))
             return
 
+        elif path == "/api/status":
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            ready = ENGINE is not None
+            self.wfile.write(json.dumps({"ready": ready}).encode("utf-8"))
+            return
+
         # Serve generated static figures
         elif path.startswith("/reports/"):
             file_path = os.path.join(BASE_DIR, path.lstrip("/"))
@@ -379,7 +388,13 @@ class DiagnosticRequestHandler(http.server.SimpleHTTPRequestHandler):
         if path == "/api/predict":
             global ENGINE
             if ENGINE is None:
-                ENGINE = FastDiagnosticInferenceEngine()
+                # Engine still warming up — tell the frontend gracefully
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(json.dumps({"warming_up": True}).encode("utf-8"))
+                return
 
             posts = data.get("posts", [])
             result = ENGINE.predict_timeline(posts)
@@ -413,31 +428,42 @@ class DiagnosticRequestHandler(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
 
 
+
 def start_server(port: int = 8080):
     global ENGINE
-    print("[Server] Pre-warming Fast Diagnostic Delay AI Engine...")
-    ENGINE = FastDiagnosticInferenceEngine()
+    import threading
+
+    def _warm_engine():
+        global ENGINE
+        print("[Server] Loading ML model in background thread...")
+        try:
+            ENGINE = FastDiagnosticInferenceEngine()
+            print("[Server] ML engine ready.")
+        except Exception as e:
+            print(f"[Server] Engine load failed: {e}")
+
+    # Start ML loading in background — server responds immediately
+    threading.Thread(target=_warm_engine, daemon=True).start()
 
     server_address = ("", port)
     httpd = http.server.HTTPServer(server_address, DiagnosticRequestHandler)
-    print(f"\n" + "=" * 80)
-    print(f"  DIAGNOSTIC DELAY NLP WEB DASHBOARD IS LIVE!")
-    print(f"  Access in your browser at: http://localhost:{port}")
-    print(f"  Or: http://127.0.0.1:{port}")
-    print("=" * 80 + "\n")
-    
+    print(f"\n{'='*60}")
+    print(f"  Server live at http://0.0.0.0:{port}")
+    print(f"  ML engine loading in background...")
+    print(f"{'='*60}\n")
+
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
-        print("\n[Server] Shutting down...")
+        print("\n[Server] Shutting down.")
         httpd.server_close()
 
 
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--port", type=int, default=None, help="Port to run web server on")
+    parser.add_argument("--port", type=int, default=None)
     args = parser.parse_args()
-    # Render.com (and most cloud platforms) inject PORT via environment variable
     port = args.port or int(os.environ.get("PORT", 8080))
     start_server(port=port)
+
